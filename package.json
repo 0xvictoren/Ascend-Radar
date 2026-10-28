@@ -1,0 +1,23 @@
+{
+  "name": "ascend-radar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Safety and intelligence terminal for Ascend launches on Elysium",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "node src/main.ts",
+    "dev:elysium": "node src/main.ts --elysium",
+    "sync": "node src/sync.ts",
+    "backtest": "node src/backtest/run.ts",
+    "backtest:real": "node src/backtest/real.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

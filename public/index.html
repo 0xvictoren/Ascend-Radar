@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ascend Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07090c; --panel: #0d1117; --panel-2: #121821; --line: #1c2430; --line-2: #263142;
+  --text: #d7dee8; --muted: #7d8a9c; --dim: #4c5868;
+  --low: #3ddc97; --caution: #f5b544; --high: #ff5d6c; --accent: #7aa2ff; --violet: #b18cff;
+  --mono: 'JetBrains Mono', ui-monospace, monospace; --sans: 'Inter', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.45 var(--sans); }
+button, input { font: inherit; color: inherit; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); } .dim { color: var(--dim); }
+.up { color: var(--low); } .down { color: var(--high); }
+
+header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .14em; font-size: 12px; }
+.brand svg { display: block; }
+.status { margin-left: auto; display: flex; gap: 16px; align-items: center; color: var(--muted); font-size: 12px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); display: inline-block; margin-right: 6px; }
+.dot.on { background: var(--low); box-shadow: 0 0 0 3px rgba(61,220,151,.15); }
+.site-nav { display: flex; gap: 2px; }
+.site-nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 4px 8px; border-radius: 5px; }
+.site-nav a:hover { color: var(--text); background: var(--panel-2); }
+.pill { font: 600 10px/1 var(--mono); letter-spacing: .08em; padding: 4px 7px; border-radius: 4px; border: 1px solid var(--line-2); color: var(--muted); text-transform: uppercase; }
+
+main { display: grid; grid-template-columns: minmax(380px, 1.05fr) minmax(420px, 1.6fr) minmax(280px, .9fr); height: calc(100vh - 49px); }
+section { border-right: 1px solid var(--line); min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+section:last-child { border-right: 0; }
+.sec-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.sec-head h2 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.scroll { overflow: auto; flex: 1; }
+
+.tabs { display: flex; gap: 4px; margin-left: auto; }
+.tabs button { background: none; border: 1px solid transparent; padding: 3px 8px; border-radius: 5px; color: var(--muted); cursor: pointer; font-size: 12px; }
+.tabs button[aria-pressed="true"] { border-color: var(--line-2); color: var(--text); background: var(--panel-2); }
+.search { padding: 8px 14px; border-bottom: 1px solid var(--line); }
+.search input { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; outline: none; }
+.search input:focus { border-color: var(--accent); }
+
+table { width: 100%; border-collapse: collapse; }
+th { position: sticky; top: 0; background: var(--bg); text-align: right; font: 500 10px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: .06em; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; }
+td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--panel); }
+tbody tr.sel { background: var(--panel-2); box-shadow: inset 2px 0 0 var(--accent); }
+tbody tr.flash { animation: flash .9s ease-out; }
+@keyframes flash { from { background: rgba(122,162,255,.12); } to { background: transparent; } }
+.sym { font-weight: 700; font-family: var(--sans); }
+.sym small { display: block; font: 400 10px var(--mono); color: var(--dim); }
+
+.score { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; padding: 2px 6px; border-radius: 4px; font: 700 11px var(--mono); }
+.score.low { color: var(--low); background: rgba(61,220,151,.1); }
+.score.caution { color: var(--caution); background: rgba(245,181,68,.1); }
+.score.high { color: var(--high); background: rgba(255,93,108,.12); }
+.stage { font: 600 9px var(--mono); padding: 2px 5px; border-radius: 3px; color: var(--violet); border: 1px solid rgba(177,140,255,.35); margin-left: 6px; vertical-align: 1px; }
+
+.detail { padding: 16px; display: grid; gap: 14px; }
+.empty { padding: 40px 20px; text-align: center; color: var(--dim); }
+.d-head { display: flex; gap: 16px; align-items: center; }
+.ring { position: relative; width: 74px; height: 74px; flex: none; }
+.ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 700 22px var(--mono); }
+.d-title h1 { margin: 0; font-size: 20px; }
+.d-title .mono { font-size: 11px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.stats div { background: var(--panel); padding: 9px 11px; }
+.stats span { display: block; font: 500 10px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+.stats strong { font: 600 14px var(--mono); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.card h3 { margin: 0; padding: 9px 12px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; }
+.reasons { list-style: none; margin: 0; padding: 4px 0; }
+.reasons li { display: grid; grid-template-columns: 44px 1fr; gap: 8px; padding: 6px 12px; }
+.reasons .imp { font: 700 12px var(--mono); text-align: right; }
+canvas { display: block; width: 100%; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.rows { padding: 2px 0; }
+.row { display: flex; justify-content: space-between; gap: 8px; padding: 5px 12px; font: 12px var(--mono); }
+.tag { font: 600 9px var(--mono); padding: 1px 5px; border-radius: 3px; text-transform: uppercase; }
+.tag.dev { background: rgba(255,93,108,.15); color: var(--high); }
+.tag.bundle { background: rgba(245,181,68,.15); color: var(--caution); }
+.tag.watch { background: rgba(122,162,255,.15); color: var(--accent); }
+.bar { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; background: var(--violet); }
+.crit { padding: 7px 12px; }
+.crit .row { padding: 0; }
+.cluster { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.cluster:last-child { border-bottom: 0; }
+
+.alerts { list-style: none; margin: 0; padding: 0; }
+.alerts li { padding: 9px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.alerts li:hover { background: var(--panel); }
+.alerts li.new { animation: flash 1.2s ease-out; }
+.alerts .t { display: flex; gap: 8px; align-items: baseline; font-weight: 600; }
+.alerts .t time { margin-left: auto; font: 10px var(--mono); color: var(--dim); font-weight: 400; }
+.alerts .d { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.k { width: 6px; height: 6px; border-radius: 50%; flex: none; transform: translateY(-1px); }
+.k.dev_sell, .k.risk_high { background: var(--high); } .k.whale_buy { background: var(--accent); }
+.k.new_pool { background: var(--dim); } .k.stage { background: var(--violet); } .k.role_change, .k.watched_wallet { background: var(--caution); }
+.watch { padding: 10px 14px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+.watch form { display: flex; gap: 6px; }
+.watch input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: 11px var(--mono); }
+.watch button { background: var(--accent); color: #08101f; border: 0; border-radius: 6px; padding: 6px 10px; font-weight: 600; cursor: pointer; }
+.watch .msg { font-size: 11px; color: var(--muted); }
+.watch .msg code { font: 10px var(--mono); color: var(--text); word-break: break-all; }
+.actions { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; text-decoration: none; border: 1px solid var(--line-2); color: var(--text); background: var(--panel-2); white-space: nowrap; }
+.btn.buy { background: var(--low); color: #04140d; border-color: transparent; }
+.btn:hover { filter: brightness(1.1); }
+
+@media (max-width: 1100px) {
+  main { grid-template-columns: 1fr; height: auto; }
+  section { border-right: 0; border-bottom: 1px solid var(--line); max-height: none; }
+  #list .scroll { max-height: 50vh; } #feed .scroll { max-height: 50vh; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .two { grid-template-columns: 1fr; }
+  .status .hide-sm { display: none; }
+  header { flex-wrap: wrap; row-gap: 6px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="#7aa2ff" stroke-opacity=".35"/><circle cx="12" cy="12" r="5.5" stroke="#7aa2ff" stroke-opacity=".6"/><path d="M12 12 L19.5 5.5" stroke="#3ddc97" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="#3ddc97"/></svg>
+    ASCEND RADAR
+  </div>
+  <span class="pill" id="source">connecting</span>
+  <nav class="site-nav" aria-label="Site"><a href="built.html">What we built</a><a href="manual.html">User manual</a></nav>
+  <div class="status">
+    <span class="hide-sm mono" id="head">block —</span>
+    <span class="mono" id="count">0 tokens</span>
+    <span><span class="dot" id="live"></span>live</span>
+  </div>
+</header>
+<main>
+  <section id="list">
+    <div class="sec-head">
+      <h2>Launches</h2>
+      <div class="tabs" role="group" aria-label="Filter">
+        <button aria-pressed="true" data-f="all">All</button>
+        <button aria-pressed="false" data-f="high">High risk</button>
+        <button aria-pressed="false" data-f="safe">Low risk</button>
+        <button aria-pressed="false" data-f="asc">Ascending</button>
+      </div>
+    </div>
+    <div class="search"><input id="q" placeholder="Search symbol or address" autocomplete="off"></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Token</th><th>Risk</th><th>MCap</th><th>Chg</th><th>Vol</th><th>Hold</th><th>Asc</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+  <section>
+    <div class="sec-head"><h2>Token</h2></div>
+    <div class="scroll"><div id="detail" class="empty">Select a launch to see its risk breakdown.</div></div>
+  </section>
+  <section id="feed">
+    <div class="sec-head"><h2>Alerts</h2></div>
+    <div class="scroll"><ul class="alerts" id="alerts"></ul></div>
+    <div class="watch">
+      <span class="muted" style="font-size:11px">Copy-alerts: watch a smart wallet</span>
+      <form id="watch"><input name="wallet" placeholder="0x… wallet" required pattern="0x[0-9a-fA-F]{40}"><input name="label" placeholder="label" style="max-width:90px"><button>Watch</button></form>
+      <div id="pro" hidden>
+        <div class="msg" id="pro-msg"></div>
+        <form id="activate" style="margin-top:6px"><input name="tx" placeholder="payment tx hash 0x…" required pattern="0x[0-9a-fA-F]{64}"><button>Activate</button></form>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+const tokens = new Map();
+let filter = 'all', query = '', selected = location.hash.slice(1) || null, head = { ts: 0 }, links = null;
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+
+const compact = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : n.toFixed(0);
+const usd = (n) => `$${compact(n)}`;
+// Amounts are in the pool's quote; only USD quotes are shown with a dollar sign.
+const money = (n, quote) => !quote || /usd/i.test(quote) ? usd(n) : `${compact(n)} ${quote}`;
+const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+const ago = (ts) => { const s = Math.max(0, head.ts - ts); return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h`; };
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const levelColor = { low: 'var(--low)', caution: 'var(--caution)', high: 'var(--high)' };
+
+function visible(t) {
+  if (query && !t.symbol.toLowerCase().includes(query) && !t.token.includes(query)) return false;
+  if (filter === 'high') return t.level === 'high';
+  if (filter === 'safe') return t.level === 'low';
+  if (filter === 'asc') return t.ascendedLikelihood >= 50 && t.level !== 'high';
+  return true;
+}
+
+let flashSet = new Set();
+function renderList() {
+  const rows = [...tokens.values()].filter(visible).sort((a, b) => b.launchBlock - a.launchBlock).slice(0, 300);
+  $('#rows').innerHTML = rows.map((t) => `
+    <tr data-t="${t.token}" class="${t.token === selected ? 'sel' : ''} ${flashSet.has(t.token) ? 'flash' : ''}">
+      <td><span class="sym">${esc(t.symbol)}${t.stage !== 'launch' ? '<span class="stage">ASC</span>' : ''}<small>${ago(t.launchTs)} · ${short(t.token)}</small></span></td>
+      <td><span class="score ${t.level}">${t.score}</span></td>
+      <td>${money(t.mcap, t.quote)}</td>
+      <td class="${t.change >= 0 ? 'up' : 'down'}">${t.change >= 0 ? '+' : ''}${t.change.toFixed(0)}%</td>
+      <td>${money(t.volume, t.quote)}</td>
+      <td>${t.holders}</td>
+      <td class="dim">${t.ascendedLikelihood}%</td>
+    </tr>`).join('');
+  flashSet = new Set();
+  $('#count').textContent = `${tokens.size} tokens`;
+}
+
+function ring(score, level) {
+  const r = 32, c = 2 * Math.PI * r, off = c * (1 - score / 100);
+  return `<div class="ring"><svg width="74" height="74" viewBox="0 0 74 74"><circle cx="37" cy="37" r="${r}" stroke="var(--line-2)" stroke-width="6" fill="none"/><circle cx="37" cy="37" r="${r}" stroke="${levelColor[level]}" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 37 37)"/></svg><b style="color:${levelColor[level]}">${score}</b></div>`;
+}
+
+async function renderDetail() {
+  if (!selected) return;
+  const res = await fetch(`/api/tokens/${selected}`);
+  if (!res.ok) { $('#detail').className = 'empty'; $('#detail').textContent = 'Token not found.'; return; }
+  const d = await res.json();
+  const r = d.report;
+  const el = $('#detail');
+  el.className = 'detail';
+  el.innerHTML = `
+    <div class="d-head">
+      ${ring(d.score, d.level)}
+      <div class="d-title">
+        <h1>${esc(d.symbol)} <span class="muted" style="font-weight:400;font-size:14px">${esc(d.name)}</span></h1>
+        <div class="mono muted">${d.token}</div>
+        <div class="mono dim">${d.role === 'deployer' ? 'creator' : 'launched by'} ${short(d.deployer)}${d.role !== 'deployer' ? ` · ${d.role === 'handoff' ? 'creator role now' : d.role} ${short(d.operator)}` : ''} · ${d.stage.replace('_', ' ')}</div>
+      </div>
+      ${links ? `<div class="actions">
+        <a class="btn buy" href="${esc(links.buyBase + d.token + links.buyQuery)}" target="_blank" rel="noopener">Buy on Ascend ↗</a>
+        <a class="btn" href="${esc(`${links.explorer}/address/${d.token}`)}" target="_blank" rel="noopener">Explorer ↗</a>
+      </div>` : ''}
+    </div>
+    <div class="stats">
+      <div><span>MCap</span><strong>${money(d.mcap, d.quote)}</strong></div>
+      <div><span>Volume</span><strong>${money(d.volume, d.quote)}</strong></div>
+      <div><span>Holders</span><strong>${d.holders}</strong></div>
+      <div><span>Dev sold</span><strong class="${d.devSoldPct >= 20 ? 'down' : ''}">${d.devSoldPct.toFixed(0)}%</strong></div>
+    </div>
+    <div class="card"><h3>Why this score <span class="dim">${r.reasons.length} signals</span></h3>
+      <ul class="reasons">${r.reasons.length ? r.reasons.map((x) => `<li><span class="imp ${x.impact < 0 ? 'down' : 'up'}">${x.impact > 0 ? '+' : ''}${x.impact}</span><span>${esc(x.detail)}</span></li>`).join('') : '<li><span></span><span class="muted">No risk signals yet.</span></li>'}</ul>
+    </div>
+    <div class="card"><h3>Price <span class="dim">1m candles · ${esc(d.quote)}</span></h3><canvas id="chart" height="190"></canvas></div>
+    <div class="two">
+      <div class="card"><h3>Linked wallets <span class="dim">${r.clusters.length}</span></h3>
+        ${r.clusters.length ? r.clusters.slice(0, 5).map((c, i) => `<div class="cluster">
+          <div class="row" style="padding:0"><span>${c.devLinked ? '<span class="tag dev">dev</span>' : '<span class="tag bundle">bundle</span>'} group ${i + 1} · ${c.members.length} wallets</span><span>${c.heldPct.toFixed(1)}% held</span></div>
+          <div class="dim mono" style="font-size:11px;margin-top:3px">bought ${c.boughtPct.toFixed(1)}% early · ${esc(c.links.slice(0, 2).join(', ') || 'dev wallet')}</div>
+        </div>`).join('') : '<div class="row muted">No linked early buyers found.</div>'}
+      </div>
+      <div class="card"><h3>Ascended progress <span style="color:var(--violet)">${r.ascended.likelihood}%</span></h3>
+        ${r.ascended.criteria.map((c) => {
+          const p = c.id === 'coordinated' ? (c.met ? 100 : Math.max(0, 100 - (c.value - c.target) * 5)) : Math.min(100, (c.value / c.target) * 100);
+          const v = c.id === 'coordinated' ? `${c.value.toFixed(1)}% / ≤${c.target}%` : c.id === 'holders' ? `${c.value} / ${c.target}` : `${usd(c.value)} / ${usd(c.target)}`;
+          return `<div class="crit"><div class="row"><span>${c.met ? '✓' : '·'} ${c.label}</span><span class="dim">${v}</span></div><div class="bar"><i style="width:${p}%;background:${c.met ? 'var(--low)' : 'var(--violet)'}"></i></div></div>`;
+        }).join('')}
+        <div class="dim" style="font-size:10px;padding:4px 12px 10px">Criteria from Ascend docs; thresholds are placeholders until published.</div>
+      </div>
+    </div>
+    <div class="two">
+      <div class="card"><h3>Top holders</h3><div class="rows">
+        ${d.topHolders.map((h) => `<div class="row"><span>${short(h.wallet)} ${h.dev ? '<span class="tag dev">dev</span>' : h.cluster !== null ? `<span class="tag bundle">b${h.cluster + 1}</span>` : ''}${h.label ? ` <span class="tag watch">${esc(h.label)}</span>` : ''}</span><span>${h.pct.toFixed(2)}%</span></div>`).join('') || '<div class="row muted">No holders yet.</div>'}
+      </div></div>
+      <div class="card"><h3>Trades</h3><div class="rows">
+        ${d.trades.slice(0, 25).map((t) => `<div class="row"><span class="${t.side === 'buy' ? 'up' : 'down'}">${t.side === 'buy' ? 'BUY ' : 'SELL'}</span><span>${short(t.trader)} ${t.tag ? `<span class="tag ${t.tag === 'dev' ? 'dev' : t.tag.startsWith('bundle') ? 'bundle' : 'watch'}">${esc(t.tag)}</span>` : ''}</span><span>${money(t.quote, d.quote)}</span><span class="dim">${ago(t.ts)}</span></div>`).join('') || '<div class="row muted">No trades yet.</div>'}
+      </div></div>
+    </div>`;
+  drawChart($('#chart'), d.candles, d.history, d.launchBlock, d.launchTs);
+}
+
+function drawChart(cv, candles, history) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = 190;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  if (!candles.length) { g.fillStyle = '#4c5868'; g.font = '12px Inter'; g.fillText('Waiting for trades…', 12, 24); return; }
+  const pad = { l: 8, r: 64, t: 10, b: 18 };
+  const cs = candles.slice(-90);
+  const hi = Math.max(...cs.map((c) => c.h)), lo = Math.min(...cs.map((c) => c.l));
+  const span = hi - lo || hi * 0.1 || 1;
+  const y = (p) => pad.t + (1 - (p - lo) / span) * (h - pad.t - pad.b);
+  const cw = (w - pad.l - pad.r) / cs.length;
+  g.strokeStyle = '#1c2430'; g.lineWidth = 1; g.fillStyle = '#4c5868'; g.font = '10px JetBrains Mono';
+  for (let i = 0; i <= 3; i++) {
+    const p = lo + (span * i) / 3, yy = Math.round(y(p)) + 0.5;
+    g.beginPath(); g.moveTo(pad.l, yy); g.lineTo(w - pad.r, yy); g.stroke();
+    g.fillText(p.toPrecision(3), w - pad.r + 6, yy + 3);
+  }
+  cs.forEach((c, i) => {
+    const x = pad.l + i * cw + cw / 2, up = c.c >= c.o;
+    g.strokeStyle = g.fillStyle = up ? '#3ddc97' : '#ff5d6c';
+    g.beginPath(); g.moveTo(x, y(c.h)); g.lineTo(x, y(c.l)); g.stroke();
+    const top = y(Math.max(c.o, c.c)), bh = Math.max(1, Math.abs(y(c.o) - y(c.c)));
+    g.fillRect(x - Math.max(1, cw * 0.32), top, Math.max(2, cw * 0.64), bh);
+  });
+}
+
+function addAlert(a, isNew) {
+  const li = document.createElement('li');
+  if (isNew) li.className = 'new';
+  li.dataset.t = a.token;
+  li.innerHTML = `<div class="t"><span class="k ${a.kind}"></span>${esc(a.title)}<time>${ago(a.ts)}</time></div><div class="d">${esc(a.detail)}</div>`;
+  const list = $('#alerts');
+  list.prepend(li);
+  while (list.children.length > 200) list.lastChild.remove();
+}
+
+function select(t) {
+  selected = t; history.replaceState(null, '', `#${t}`);
+  renderList(); renderDetail();
+}
+
+$('#rows').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-t]'); if (tr) select(tr.dataset.t); });
+$('#alerts').addEventListener('click', (e) => { const li = e.target.closest('li[data-t]'); if (li) select(li.dataset.t); });
+document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
+  filter = b.dataset.f;
+  document.querySelectorAll('.tabs button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  renderList();
+}));
+$('#q').addEventListener('input', (e) => { query = e.target.value.trim().toLowerCase(); renderList(); });
+$('#watch').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const headers = { 'content-type': 'application/json' };
+  const key = store.get('radarKey');
+  if (key) headers['x-radar-key'] = key;
+  const res = await fetch('/api/watch', { method: 'POST', headers, body: JSON.stringify({ wallet: f.get('wallet'), label: f.get('label') || undefined }) });
+  if (res.ok) { e.target.reset(); $('#pro').hidden = true; return; }
+  if (res.status === 401) showPro((await res.json()).pro);
+});
+
+function showPro(pro) {
+  const s = pro?.subscription;
+  $('#pro-msg').innerHTML = s
+    ? `Copy-alerts are Pro: send <b>${s.priceUsdc} USDC</b> per ${s.days} days on Elysium to <code>${esc(s.treasury)}</code>, then paste the transaction hash.`
+    : 'Copy-alerts are Pro. Subscriptions are not configured on this server.';
+  $('#activate').hidden = !s;
+  $('#pro').hidden = false;
+}
+
+$('#activate').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const tx = new FormData(e.target).get('tx');
+  const res = await fetch('/api/pro/activate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ txHash: tx }) });
+  const body = await res.json();
+  if (!res.ok) { $('#pro-msg').textContent = body.error ?? 'Activation failed.'; return; }
+  store.set('radarKey', body.key);
+  $('#pro-msg').innerHTML = `Pro active until ${new Date(body.expires).toLocaleDateString()}. Key saved in this browser: <code>${esc(body.key)}</code>`;
+  $('#activate').hidden = true;
+});
+
+async function boot() {
+  const [list, alerts, status] = await Promise.all([fetch('/api/tokens').then((r) => r.json()), fetch('/api/alerts?limit=80').then((r) => r.json()), fetch('/api/status').then((r) => r.json())]);
+  head = status;
+  links = status.links ?? null;
+  $('#head').textContent = `block ${status.block.toLocaleString()}`;
+  for (const t of list) tokens.set(t.token, t);
+  alerts.reverse().forEach((a) => addAlert(a, false));
+  if (!selected && list.length) selected = (list.find((t) => t.level === 'high') ?? list[0]).token;
+  renderList(); renderDetail();
+
+  const es = new EventSource('/api/stream');
+  es.addEventListener('hello', (e) => { const s = JSON.parse(e.data); $('#source').textContent = s.source; $('#live').classList.add('on'); });
+  es.addEventListener('alert', (e) => addAlert(JSON.parse(e.data), true));
+  es.addEventListener('tokens', (e) => {
+    const { rows, status } = JSON.parse(e.data);
+    head = status;
+    $('#head').textContent = `block ${status.block.toLocaleString()}`;
+    for (const r of rows) { if (!tokens.has(r.token)) flashSet.add(r.token); tokens.set(r.token, r); }
+    renderList();
+    if (rows.some((r) => r.token === selected)) renderDetail();
+  });
+  es.onerror = () => $('#live').classList.remove('on');
+}
+boot();
+</script>
+</body>
+</html>

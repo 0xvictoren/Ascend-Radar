@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What We Built · Ascend Radar</title>
+<meta name="description" content="What Ascend Radar is, how it reads Ascend on Elysium, and how well it works so far.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="docs.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="/">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="#7aa2ff" stroke-opacity=".35"/><circle cx="12" cy="12" r="5.5" stroke="#7aa2ff" stroke-opacity=".6"/><path d="M12 12 L19.5 5.5" stroke="#3ddc97" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="#3ddc97"/></svg>
+    ASCEND RADAR
+  </a>
+  <nav aria-label="Site">
+    <a href="/">Terminal</a>
+    <a href="built.html" aria-current="page">What we built</a>
+    <a href="manual.html">User manual</a>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div class="kicker">What we built</div>
+  <h1>A safety terminal for every launch on Ascend</h1>
+  <p class="lede">Ascend Radar watches every token launched on Ascend, the launchpad on Kinetiq's Elysium L2. Each launch gets a 0–100 risk score in which every point comes with a reason a buyer can check on-chain. Radar also tracks each token's progress towards Ascended status and pushes alerts when something changes.</p>
+
+  <ul class="toc">
+    <li><a href="#problem">The problem</a></li>
+    <li><a href="#what">What Radar does</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#signals">Risk signals</a></li>
+    <li><a href="#results">Results so far</a></li>
+    <li><a href="#pro">Pro &amp; revenue</a></li>
+    <li><a href="#next">What's next</a></li>
+  </ul>
+
+  <h2 id="problem">The problem</h2>
+  <p>Ascend has no bonding curve. Tokens launch straight into hook pools quoted in USDC, and the best ones go on to Ascended status, a HyperCore spot listing and HIP-3 perps. That path rewards real communities, and it also makes a fast launchpad attractive to the usual playbook: a dev who buys through hidden wallets, bundles of snipers funded from one source, and serial deployers who rug and relaunch.</p>
+  <p>Buyers can't trace funding graphs by hand in the seconds that matter. Ascend's own Ascended check looks for "concentrated or coordinated token accumulation", so the same analysis matters to the protocol too.</p>
+
+  <h2 id="what">What Radar does</h2>
+  <div class="grid">
+    <div class="card"><h3>Explainable risk score</h3><p>Weighted rules, no black box. Every deduction is a sentence such as "Dev-linked wallets hold 23% across 4 wallets" that points to wallets you can open in the explorer.</p></div>
+    <div class="card"><h3>Linked-wallet detection</h3><p>Groups early buyers that share a funder (up to 2 hops), pass tokens between each other, or buy near-identical amounts in the same 2-second window.</p></div>
+    <div class="card"><h3>Dev tracking</h3><p>Follows the creator, the wallets it funds or sends tokens to, and creator fee claims. It alerts as dev-linked wallets cross 20%, 50% and 90% sold.</p></div>
+    <div class="card"><h3>Serial-deployer memory</h3><p>When a token rugs, Radar remembers the deployer and its funders. Their next launch is flagged from its first block.</p></div>
+    <div class="card"><h3>Ascended progress</h3><p>Shows market cap, unique holders, volume and coordinated holdings against Ascend's published criteria. The thresholds are placeholders until Ascend publishes them.</p></div>
+    <div class="card"><h3>Alerts everywhere</h3><p>A live feed in the terminal, plus Telegram and Discord, for new pools, dev sells, high risk, whale buys, creator-role changes and watched wallets.</p></div>
+  </div>
+
+  <h2 id="how">How it works</h2>
+  <div class="flow" role="list">
+    <div class="step" role="listitem"><b>Elysium testnet</b><span>RPC logs + Blockscout funding history</span></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="step" role="listitem"><b>Indexer</b><span>Decodes Ascend events into normalized chain events</span></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="step" role="listitem"><b>Engine</b><span>Funding graph, wallet clusters, risk score, alerts</span></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="step" role="listitem"><b>Outputs</b><span>Terminal, REST + live stream, Telegram, Discord, paid API</span></div>
+  </div>
+
+  <h3>Built on Ascend's real contracts</h3>
+  <p>Radar indexes Ascend's live deployment on the Elysium testnet (chain 99801). It reads the verified <code>AscendLaunchpad</code> contract and the PancakeSwap Infinity / Uniswap v4 pool managers behind it:</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>On-chain</th><th>What Radar does with it</th></tr></thead>
+    <tbody>
+      <tr><td><code>Launched</code></td><td>New token. The creator's atomic dev-buy in the same transaction becomes the creator's first buy.</td></tr>
+      <tr><td><code>Swap</code> on an Ascend pool</td><td>A buy or sell, attributed to the wallet that sent the transaction. A sell partly filled by the protocol bid (<code>Filled</code>) is merged in.</td></tr>
+      <tr><td>Token <code>Transfer</code> wallet → wallet</td><td>Moves the balance and links the two wallets. Pool, vault, treasury and contract legs are ignored so routers and staking contracts can't link strangers.</td></tr>
+      <tr><td><code>CreatorTransferred</code></td><td>Creator-role handoff alert (e.g. to a fee router).</td></tr>
+      <tr><td><code>CreatorClaimed</code></td><td>Fee claim. Claimed tokens count as the creator's, so selling them counts as a dev sell.</td></tr>
+      <tr><td><code>ListingSetAside</code></td><td>The creator reserves 20% of quote fees for a HyperCore listing (a positive signal).</td></tr>
+      <tr><td>Explorer history</td><td>Who sent each early buyer and creator their HYPE and USDC. Faucets, bridges and other very busy wallets are treated as hubs and never link wallets.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Only launchpads deployed by Ascend's own deployer are indexed; look-alike forks that emit the same events are excluded. Windows are wall-clock based for Elysium's ~240 ms blocks: early buyers are the first 10 minutes, and sniping is the first 5 seconds, which matches Ascend's sniper fee as it decays from 90% to 1%.</p>
+  <p>Everything is stored in SQLite as an ordered event log. A restart replays the history and resumes from the last indexed block. Radar has no runtime dependencies beyond Node.</p>
+
+  <h2 id="signals">Risk signals</h2>
+  <p>A token starts at 100. Each rule that fires moves the score and adds a reason. Below 40 is <span class="badge high">high</span>, below 70 is <span class="badge caution">caution</span>, and the rest is <span class="badge low">low</span>.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Signal</th><th>Fires when</th><th>Points</th></tr></thead>
+    <tbody>
+      <tr><td>Rugged</td><td>Price ≥ 80% below peak after dev-linked wallets sold at least half their tokens</td><td class="num neg">−60</td></tr>
+      <tr><td>Dev holds</td><td>Dev-linked wallets hold ≥ 20% / ≥ 12% / ≥ 6% of supply</td><td class="num neg">−40 / −25 / −10</td></tr>
+      <tr><td>Dev sold</td><td>Dev-linked wallets sold ≥ 50% / ≥ 20% of what they acquired</td><td class="num neg">−40 / −15</td></tr>
+      <tr><td>Bundles</td><td>Linked non-dev wallets hold ≥ 30% / ≥ 15% / ≥ 5% (or bought ≥ 15% early and exited)</td><td class="num neg">−35 / −20 / −8 (−10)</td></tr>
+      <tr><td>Serial deployer</td><td>Deployer, or one of its funders, is tied to an earlier rug</td><td class="num neg">−30</td></tr>
+      <tr><td>Hidden dev wallets</td><td>Dev bought ≥ 12% through 3+ linked wallets</td><td class="num neg">−25</td></tr>
+      <tr><td>Concentration</td><td>Top 10 wallets hold ≥ 50% / ≥ 30%</td><td class="num neg">−20 / −10</td></tr>
+      <tr><td>Sniped</td><td>Non-dev wallets bought ≥ 20% of supply in the first 5 seconds</td><td class="num neg">−10</td></tr>
+      <tr><td>Ascended / listing reserve / 200+ holders / approved creator</td><td>Positive signals</td><td class="num pos">+10 / +5 / +5 / +5</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">A dev-linked group is scored once, as dev holdings, never again as a bundle. The creator's own dev-buy never counts as sniping. Positive signals are shown but don't count when any severe red flag (−25 or worse) is present.</p>
+
+  <h2 id="results">Results so far</h2>
+  <p>We indexed Ascend's entire testnet history and replayed it through Radar. The backtest labels come only from explicit on-chain facts (did the creator wallet itself sell out, and did the price collapse?), never from Radar's own clustering, so the test isn't circular.</p>
+  <div class="grid">
+    <div class="card"><div class="stat">443</div><div class="stat-label">launches indexed</div></div>
+    <div class="card"><div class="stat">11,656</div><div class="stat-label">swaps decoded</div></div>
+    <div class="card"><div class="stat">96%</div><div class="stat-label">of swaps are buys</div></div>
+    <div class="card"><div class="stat">422</div><div class="stat-label">launches too thin to judge</div></div>
+  </div>
+  <div class="callout">
+    <p><b>Honest read:</b> the testnet is mostly buy-only bot and load-test traffic with valueless mock USDC, so there are almost no dumps to predict. That leaves one labelled rug and 17 clean launches, too few to quote an accuracy number. We didn't tune any thresholds on this sample.</p>
+  </div>
+  <p>The two cases we do have are still telling. The one rug (<code>BTC</code>) was a 100% creator exit followed by a 99.6% price drop. Radar rated it <em>caution</em> before the dump and <em>high</em> only after. The same creator's next launch (<code>FGK</code>) was rated high-risk from launch as a serial deployer whose wallets hold 98% of supply. It counts as a "false positive" only because it hasn't dumped yet.</p>
+  <p>The same backtest runs unchanged on mainnet history. That result is the number that counts.</p>
+
+  <h2 id="pro">Pro &amp; revenue</h2>
+  <ul>
+    <li><b>Free:</b> the terminal, every score and reason, and the alert feed.</li>
+    <li><b>Pro subscription:</b> copy-alerts on any wallet, plus the public risk API. You pay in USDC on Elysium: send the price to the treasury and paste the transaction hash. Radar checks the payment on-chain and issues a key, with no payment processor involved.</li>
+    <li><b>Pay-per-call API (x402):</b> bots and wallets can call <code>/api/v1/risk/:token</code> without an account by paying per request in USDC through the x402 protocol.</li>
+    <li><b>Buy on Ascend:</b> every token page links to the token on Ascend's app. Once Ascend publishes how referrals attach, those buys earn Ascend's 20% referral share of swap fees.</li>
+  </ul>
+
+  <h2 id="next">What's next</h2>
+  <ol>
+    <li><b>Mainnet.</b> Elysium mainnet is expected around November 9, 2026. Switching is a configuration change, followed by a re-index and the real backtest.</li>
+    <li><b>Ascended thresholds and lifecycle events</b> as soon as Ascend publishes them.</li>
+    <li><b>Referral attribution</b> on the buy button.</li>
+    <li><b>Smart-wallet bundles.</b> Bundles routed through contract wallets or disperse contracts are a known blind spot today.</li>
+  </ol>
+
+  <footer>Ascend Radar is independent and not affiliated with Ascend or Kinetiq. Testnet data has no monetary value. · <a href="manual.html">Read the user manual →</a></footer>
+</main>
+</body>
+</html>

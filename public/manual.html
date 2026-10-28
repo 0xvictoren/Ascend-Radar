@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Manual · Ascend Radar</title>
+<meta name="description" content="How to use the Ascend Radar terminal, alerts, Pro and the API.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="docs.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="/">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="#7aa2ff" stroke-opacity=".35"/><circle cx="12" cy="12" r="5.5" stroke="#7aa2ff" stroke-opacity=".6"/><path d="M12 12 L19.5 5.5" stroke="#3ddc97" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="#3ddc97"/></svg>
+    ASCEND RADAR
+  </a>
+  <nav aria-label="Site">
+    <a href="/">Terminal</a>
+    <a href="built.html">What we built</a>
+    <a href="manual.html" aria-current="page">User manual</a>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div class="kicker">User manual</div>
+  <h1>Using Ascend Radar</h1>
+  <p class="lede">Read a launch's risk in seconds, see why it scored that way, and get told when the dev starts selling.</p>
+
+  <ul class="toc">
+    <li><a href="#tour">The terminal</a></li>
+    <li><a href="#score">Reading a score</a></li>
+    <li><a href="#token">Token page</a></li>
+    <li><a href="#alerts">Alerts</a></li>
+    <li><a href="#copy">Copy-alerts &amp; Pro</a></li>
+    <li><a href="#notify">Telegram &amp; Discord</a></li>
+    <li><a href="#api">API</a></li>
+    <li><a href="#run">Run your own</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+
+  <h2 id="tour">The terminal</h2>
+  <p>The <a href="/">terminal</a> has three columns (stacked on phones):</p>
+  <ol>
+    <li><b>Launches:</b> every Ascend launch, newest first, with risk score, market cap, price change, volume, holders and Ascended progress. New launches flash as they appear.</li>
+    <li><b>Token:</b> the full breakdown for the selected launch.</li>
+    <li><b>Alerts:</b> the live feed. Click any alert to open its token.</li>
+  </ol>
+  <h3>Filtering and search</h3>
+  <ul>
+    <li><b>All / High risk / Low risk:</b> filter by risk level.</li>
+    <li><b>Ascending:</b> tokens at least 50% of the way to Ascended status that aren't high risk.</li>
+    <li><b>Search:</b> type a symbol or part of a token address.</li>
+  </ul>
+  <p>The header shows the data source (<code>elysium-testnet</code> or the simulator), the latest indexed block, and a green dot while the live stream is connected. The selected token is kept in the URL (<code>/#0x…</code>), so you can share a link straight to it.</p>
+
+  <h2 id="score">Reading a score</h2>
+  <p>Every token starts at 100, and each red flag subtracts points:</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Score</th><th>Level</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td class="num">70–100</td><td><span class="badge low">low</span></td><td>No serious red flags found <em>yet</em>. Not a guarantee: new launches have little history.</td></tr>
+      <tr><td class="num">40–69</td><td><span class="badge caution">caution</span></td><td>Something is off, such as concentrated holdings, a linked bundle or partial dev selling. Read the reasons.</td></tr>
+      <tr><td class="num">0–39</td><td><span class="badge high">high</span></td><td>Strong rug patterns: a large dev position, dev selling, a serial deployer, or an actual collapse.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Always read <b>Why this score</b>. Each line is a specific claim, such as "Linked wallets hold 18.2% of supply (largest group: 5 wallets, shared funder 0x3f…a1)", that you can check in the explorer. The full rule list is on <a href="built.html#signals">What we built</a>.</p>
+  <div class="callout info"><p>Scores change as the token trades. A token rated low at launch can turn high minutes later when the dev starts selling, which is what alerts are for.</p></div>
+
+  <h2 id="token">Token page</h2>
+  <ul>
+    <li><b>Header:</b> score ring, name, address, creator, and creator-role status (shows <em>creator role now 0x…</em> after a handoff, e.g. to a fee router). <b>Buy on Ascend</b> opens the token on Ascend's app. <b>Explorer</b> opens it on the Elysium explorer.</li>
+    <li><b>Stats:</b> market cap, volume, holders, and <b>Dev sold</b> (the share of dev-linked tokens already sold, shown in red from 20% up).</li>
+    <li><b>Why this score:</b> every signal with its points, worst first.</li>
+    <li><b>Price:</b> 1-minute candles in the pool's quote token (usually USDC).</li>
+    <li><b>Linked wallets:</b> groups of early buyers Radar believes are one operator. <span class="badge high">dev</span> groups touch the creator; <span class="badge caution">bundle</span> groups don't. Each shows how much it bought early, how much it still holds, and why its wallets are linked.</li>
+    <li><b>Ascended progress:</b> market cap, holders, volume and coordinated holdings against Ascend's criteria. The targets are placeholders until Ascend publishes the real thresholds.</li>
+    <li><b>Top holders</b> and <b>Trades:</b> tagged <code>dev</code>, <code>b1</code>, <code>b2</code>… (bundle groups) or your watch label.</li>
+  </ul>
+  <p class="muted">Amounts are in the pool's quote token. USDC pools show dollars, and others (e.g. WHYPE) show the token symbol.</p>
+
+  <h2 id="alerts">Alerts</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Alert</th><th>When</th><th>Pushed to Telegram / Discord</th></tr></thead>
+    <tbody>
+      <tr><td>New pool</td><td>A token launches. Notes if the deployer is linked to earlier rugs.</td><td>No (feed only)</td></tr>
+      <tr><td>Dev selling</td><td>Dev-linked wallets cross 20%, 50% and 90% sold</td><td>Yes</td></tr>
+      <tr><td>High risk</td><td>Score drops below 40 (re-arms once it recovers to low)</td><td>Yes</td></tr>
+      <tr><td>Whale buy</td><td>A single buy of $5,000 or more</td><td>Yes</td></tr>
+      <tr><td>Creator role</td><td>The creator role is handed to another wallet or contract</td><td>Yes</td></tr>
+      <tr><td>Stage</td><td>A lifecycle change (Ascended, HyperCore spot, HIP-3)</td><td>Yes</td></tr>
+      <tr><td>Watched wallet</td><td>A wallet you watch buys or sells any Ascend token</td><td>Yes</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="copy">Copy-alerts &amp; Pro</h2>
+  <p>In the Alerts column, enter a wallet address and an optional label, then press <b>Watch</b>. Every trade that wallet makes on Ascend then appears in your feed (and in Telegram or Discord, if connected).</p>
+  <p>If the server runs with Pro enabled, watching a wallet needs a Pro key:</p>
+  <ol>
+    <li>Press <b>Watch</b>. Radar shows the price, the subscription length and the treasury address.</li>
+    <li>Send that amount of USDC on Elysium to the treasury. Paying a multiple buys more periods (2× the price = 2 periods).</li>
+    <li>Paste the payment's transaction hash and press <b>Activate</b>.</li>
+    <li>Radar checks the payment on-chain and saves your key in this browser. Keep a copy: it's shown once, and it also unlocks the API.</li>
+  </ol>
+  <p class="muted">Each payment can activate only one key. Keys expire at the end of the paid period.</p>
+
+  <h2 id="notify">Telegram &amp; Discord</h2>
+  <p>For a server you run yourself, add these to <code>.env</code> and restart:</p>
+<pre><code>TELEGRAM_BOT_TOKEN=123456:ABC…   # from @BotFather
+TELEGRAM_CHAT_ID=-100…           # your chat or channel id
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/…
+PUBLIC_URL=https://radar.example.com   # so alerts link back to the token</code></pre>
+  <p>Only new events are pushed; history replayed at startup stays out of your chats.</p>
+
+  <h2 id="api">API</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Endpoint</th><th>Returns</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/tokens</code></td><td>Every launch with score and market stats. Add <code>?level=high</code> to filter.</td></tr>
+      <tr><td><code>GET /api/tokens/:address</code></td><td>Full token detail: reasons, clusters, candles, holders, trades</td></tr>
+      <tr><td><code>GET /api/alerts</code></td><td>Recent alerts (<code>?limit=</code>, <code>?token=</code>)</td></tr>
+      <tr><td><code>GET /api/stream</code></td><td>Server-sent events: <code>alert</code> and batched <code>tokens</code> updates</td></tr>
+      <tr><td><code>GET /api/v1/risk/:address</code></td><td>Compact risk report for bots and wallets. Needs a Pro key or an x402 payment when Pro is on.</td></tr>
+      <tr><td><code>GET /api/pro</code></td><td>Pricing, and your key's status when you send one</td></tr>
+    </tbody>
+  </table></div>
+  <h3>With a Pro key</h3>
+<pre><code>curl -H "x-radar-key: rk_…" https://radar.example.com/api/v1/risk/0xTOKEN</code></pre>
+  <h3>Pay per call (x402)</h3>
+  <p>Without a key, <code>/api/v1/risk/:address</code> answers <code>402 Payment Required</code> with the price, asset, network and pay-to address in the x402 v1 format. Any x402 client can sign the USDC payment and retry with an <code>X-PAYMENT</code> header. Radar verifies and settles it, then returns the report with an <code>X-PAYMENT-RESPONSE</code> receipt.</p>
+
+  <h2 id="run">Run your own</h2>
+  <p>You need Node 22.18 or newer and nothing else.</p>
+<pre><code>npm install
+npm run sync           # index Ascend's Elysium testnet history (first run ~15–25 min)
+npm run dev:elysium    # terminal on http://localhost:8787, live
+npm run backtest:real  # score the real history, write data/backtest-real.json
+
+npm run dev            # simulated launches instead, no network needed</code></pre>
+  <p>Useful settings (<code>.env</code>, see <code>.env.example</code>):</p>
+  <ul>
+    <li><code>PRO_MODE=on</code>, <code>PRO_TREASURY</code>, <code>PRO_PRICE_USDC</code>, <code>PRO_DAYS</code>: turn on and price subscriptions.</li>
+    <li><code>X402_PAY_TO</code>, <code>X402_NETWORK</code>, <code>X402_PRICE_ATOMIC</code>: turn on pay-per-call.</li>
+    <li><code>QUOTE_USD=0xToken:price,…</code>: give non-USD quote tokens a dollar price.</li>
+    <li><code>HUB_ADDRESSES</code>: exchange or bridge wallets that must never link buyers.</li>
+    <li><code>ASCEND_LAUNCHPADS</code>, <code>ELYSIUM_RPC_URL</code>, <code>ELYSIUM_EXPLORER_API</code>: point Radar at new deployments or at mainnet.</li>
+  </ul>
+  <p class="muted">Run one Radar process per database: <code>sync</code> and the terminal both write to <code>data/radar.db</code>.</p>
+
+  <h2 id="faq">FAQ</h2>
+  <h3>A token is "low risk". Is it safe?</h3>
+  <p>No. Low means Radar found none of the patterns it looks for. It can't see off-chain coordination, wallets funded independently from exchanges, or bundles routed through smart contracts.</p>
+  <h3>Why are two wallets "linked"?</h3>
+  <p>The cluster card says why: a shared funder (named), a direct token transfer, or near-identical buys in the same 2-second window. Faucets, bridges and very busy wallets never count as a shared funder.</p>
+  <h3>Why does the Ascended progress look off?</h3>
+  <p>Ascend has published the criteria (market cap, holders, volume, no coordinated accumulation) but not the thresholds. Radar's targets are placeholders.</p>
+  <h3>Is this real money?</h3>
+  <p>Not yet. Radar currently reads Ascend's Elysium <b>testnet</b>, where USDC is a mock with no value. It switches to mainnet when Ascend launches there.</p>
+  <h3>Does "Buy on Ascend" earn Radar a fee?</h3>
+  <p>Not yet. Ascend pays referrers 20% of referred swap fees, but it hasn't published how a referral attaches to a trade. The button is a plain link until it does.</p>
+
+  <footer>Ascend Radar is independent and not affiliated with Ascend or Kinetiq. Nothing here is financial advice. · <a href="built.html">← What we built</a></footer>
+</main>
+</body>
+</html>
